@@ -1,0 +1,17 @@
+{
+  "name": "断食守护健康 v.2.2.1",
+  "short_name": "断食守护健康",
+  "description": "断食守护健康 v.2.2.1",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#dfe9f3",
+  "theme_color": "#dfe9f3",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

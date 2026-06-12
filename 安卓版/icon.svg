@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1120"/>
+      <stop offset="100%" style="stop-color:#1a1f35"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a9eff"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景圆角矩形 -->
+  <rect width="192" height="192" rx="40" fill="url(#bg)"/>
+  <!-- 外圆环 -->
+  <circle cx="96" cy="90" r="58" fill="none" stroke="url(#ring)" stroke-width="6" stroke-dasharray="300 66" stroke-linecap="round" transform="rotate(-90 96 90)"/>
+  <!-- 月亮图标 -->
+  <path d="M96 52 C75 52 58 69 58 90 C58 111 75 128 96 128 C108 128 118 122 125 113 C119 115 112 116 105 114 C88 109 77 93 80 76 C82 65 88 57 96 52Z" fill="url(#ring)"/>
+  <!-- 星星点缀 -->
+  <circle cx="130" cy="62" r="3" fill="#4a9eff" opacity="0.8"/>
+  <circle cx="142" cy="80" r="2" fill="#a855f7" opacity="0.6"/>
+  <circle cx="125" cy="78" r="1.5" fill="#4a9eff" opacity="0.5"/>
+  <!-- 底部文字 -->
+  <text x="96" y="158" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="bold" fill="#4a9eff" letter-spacing="2">守护</text>
+</svg>

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#080b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="断食守护健康 v.2.2.1">
+  <meta name="description" content="断食守护健康 v.2.2.1">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>断食守护健康 v.2.2.1</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="app">
+  <div class="glow-orb glow-1"></div>
+  <div class="glow-orb glow-2" style="animation: breathe2 6s ease-in-out infinite reverse;"></div>
+
+  <!-- SCREEN WRAP: 横向排列 主页 / 计时 / 体重 / 稳糖 / 记录 -->
+  <div id="screen-wrap">
+
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen">
+    <div class="header">
+      <div class="logo">断<span class="logo-accent">食</span>守护</div>
+      <div class="icon-btn" onclick="toggleTheme()" onpointerdown="startThemeHold()" onpointerup="endThemeHold()" onpointerleave="endThemeHold()" oncontextmenu="return false" id="theme-btn" style="font-size:18px;" title="自动 / 夜晚 / 白天">🌓</div>
+    </div>
+    <div class="scroll-area">
+      <div class="section-label">选择断食方案</div>
+      <div class="plan-grid" id="plan-grid"></div>
+
+      <div class="section-label" style="margin-top:20px;">健康阶段</div>
+      <div id="phase-preview"></div>
+
+      <button class="start-btn" onclick="startFast()">
+        开始断食 →
+      </button>
+
+      <div style="height:8px;"></div>
+    </div>
+  </div>
+
+  <!-- FASTING SCREEN -->
+  <div id="screen-fasting" class="screen">
+    <div class="header" style="justify-content:flex-start;gap:10px;">
+      <div class="logo">断食<span class="logo-accent">计时</span></div>
+    </div>
+    <div class="fast-screen-inner" id="fast-inner">
+
+      <!-- Arc timer — tap to adjust -->
+      <div class="arc-container" onclick="showAdjustModal()" style="cursor:pointer;" title="点击调整时间">
+        <svg class="arc-svg" width="230" height="230" id="arc-svg" style="overflow:visible;">
+          <defs>
+            <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4a9eff"/>
+              <stop offset="40%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#f97316"/>
+            </linearGradient>
+            <filter id="arcGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="8" result="blur"/>
+            </filter>
+          </defs>
+          <!-- Glow layer (blurred copy, inside SVG so never clipped) -->
+          <circle cx="115" cy="115" r="100" fill="none"
+            stroke="#4a9eff" stroke-width="18"
+            stroke-dasharray="628.3" stroke-dashoffset="628.3"
+            stroke-linecap="round"
+            id="arc-glow-circle"
+            filter="url(#arcGlow)"
+            style="transform:rotate(-90deg);transform-origin:115px 115px;opacity:0.6;"/>
+          <circle cx="115" cy="115" r="100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
+          <circle cx="115" cy="115" r="100" fill="none"
+            stroke="url(#arcGrad)" stroke-width="12"
+            stroke-dasharray="628.3" stroke-dashoffset="628.3"
+            stroke-linecap="round"
+            id="arc-progress"
+            style="transform:rotate(-90deg);transform-origin:115px 115px;transition:stroke-dashoffset 0.8s ease;"/>
+        </svg>
+        <div class="arc-inner">
+          <div id="fast-plan-badge-circle" style="display:none;font-size:13px;font-weight:800;padding:3px 10px;color:var(--blue);border:1.5px solid rgba(74,158,255,0.4);border-radius:8px;letter-spacing:0.5px;line-height:1.4;font-family:'Space Mono',monospace;margin-bottom:8px;"></div>
+          <div class="elapsed-time" id="elapsed-display">00:00:00</div>
+          <div class="elapsed-label">已断食</div>
+          <div class="progress-pct" id="progress-pct">0%</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:8px;letter-spacing:0.5px;opacity:0.6;">点击调整</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-target">16h</div>
+          <div class="stat-lbl">目标</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-remaining">16h0m</div>
+          <div class="stat-lbl">剩余</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-status" style="color:var(--green);font-size:13px;">热身中</div>
+          <div class="stat-lbl">状态</div>
+        </div>
+      </div>
+
+      <!-- Blood sugar bar -->
+      <div class="bs-card">
+        <div class="bs-title">胰岛素稳定指数</div>
+        <div class="bs-bar-bg">
+          <div class="bs-bar-fill" id="insulin-bar" style="width:5%;"></div>
+        </div>
+        <div class="bs-labels">
+          <span>开始</span>
+          <span id="insulin-label">稳定中...</span>
+          <span>完全稳定</span>
+        </div>
+      </div>
+
+      <!-- Current phase -->
+      <div class="current-phase-card">
+        <div class="cp-header">
+          <div class="cp-emoji" id="cp-emoji">🌙</div>
+          <div>
+            <div class="cp-title" id="cp-title">开始断食</div>
+            <div class="cp-desc" id="cp-desc">血糖开始稳定</div>
+          </div>
+        </div>
+        <div class="cp-next" id="cp-next"></div>
+      </div>
+
+      <!-- Complete banner (hidden by default) -->
+      <div class="complete-banner" id="complete-banner" style="display:none;">
+        🎉 恭喜！已完成断食目标！
+      </div>
+
+      <div class="tip-card">
+        <div style="font-size:20px;flex-shrink:0;">💡</div>
+        <div>
+          <div class="tip-label">健康小贴士</div>
+          <div class="tip-text" id="tip-text">多喝水、无糖茶或黑咖啡可帮助度过断食期</div>
+        </div>
+      </div>
+
+      <button class="end-btn" onclick="endFast()">结束断食</button>
+    </div>
+  </div>
+
+  <div id="screen-weight" class="screen">
+    <div class="header">
+      <div class="logo">体重<span class="logo-accent">追踪</span></div>
+    </div>
+    <div class="scroll-area">
+      <!-- BMI -->
+      <div class="section-label">身体质量指数（BMI）</div>
+      <div style="background:transparent;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div style="font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:4px;">当前 BMI</div>
+            <div style="display:flex;align-items:flex-end;gap:8px;">
+              <div style="font-size:48px;font-weight:900;font-family:monospace;line-height:1;" id="bmi-val">--</div>
+
+            </div>
+          </div>
+          <div id="bmi-badge" style="display:none;text-align:center;align-self:flex-end;">
+            <div style="font-size:32px;line-height:1;" id="bmi-icon">😊</div>
+            <div style="font-size:13px;font-weight:700;margin-top:4px;" id="bmi-badge-lbl"></div>
+          </div>
+        </div>
+        <div style="margin:8px 0 52px;position:relative;">
+          <div style="height:10px;border-radius:6px;background:linear-gradient(90deg,#4a9eff 0%,#4ade80 17.5%,#fbbf24 45%,#f97316 65%,#ff6060 100%);position:relative;">
+            <div id="bmi-marker" style="display:none;position:absolute;top:-5px;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #080b14;transform:translateX(-50%);transition:left .5s ease;"></div>
+
+            <div style="position:absolute;top:12px;width:1.5px;height:8px;background:var(--bmi-tick);left:17.5%;"></div>
+            <div style="position:absolute;top:12px;width:1.5px;height:8px;background:var(--bmi-tick);left:45%;"></div>
+            <div style="position:absolute;top:12px;width:1.5px;height:8px;background:var(--bmi-tick);left:65%;"></div>
+          </div>
+          <div style="position:absolute;bottom:-20px;left:0;right:0;">
+            <div style="position:absolute;left:8%;transform:translateX(-50%);font-size:9px;color:#666;text-align:center;">偏轻<br><span style="font-size:8px;">&lt;18.5</span></div>
+            <div style="position:absolute;left:31%;transform:translateX(-50%);font-size:9px;color:#666;text-align:center;">正常<br><span style="font-size:8px;">18.5-24</span></div>
+            <div style="position:absolute;left:55%;transform:translateX(-50%);font-size:9px;color:#666;text-align:center;">超重<br><span style="font-size:8px;">24-28</span></div>
+            <div style="position:absolute;left:82%;transform:translateX(-50%);font-size:9px;color:#666;text-align:center;">肥胖<br><span style="font-size:8px;">&gt;28</span></div>
+          </div>
+        </div>
+        <!-- 已设置身高时的小标签 + 目标体重 -->
+        <div id="bmi-height-tag" style="display:none;margin-top:0;flex-direction:column;gap:0;">
+          <div style="display:flex;gap:10px;">
+            <div onclick="showHeightModal()" style="flex:1;background:transparent;border:1px solid var(--border);border-radius:12px;padding:6px 10px;cursor:pointer;">
+              <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:3px;">身高</div>
+              <div id="bmi-height-display" style="font-size:15px;font-weight:700;font-family:monospace;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">点击设置身高</div>
+            </div>
+            <div onclick="showGoalModal()" style="flex:1;background:transparent;border:1px solid var(--border);border-radius:12px;padding:6px 10px;cursor:pointer;position:relative;">
+              <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:3px;">目标体重</div>
+              <div id="goal-display" style="font-size:15px;font-weight:700;font-family:monospace;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">点击设置目标</div>
+              <div id="goal-diff" style="position:absolute;bottom:6px;right:10px;font-size:11px;color:#22a85a;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 记录体重 -->
+      <div class="section-label">记录体重</div>
+      <div style="background:transparent;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 28px 92px;gap:10px;align-items:center;">
+          <input id="weight-input" type="number" placeholder="70.0" step="0.1" min="20" max="300"
+            style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:#fff;font-size:20px;font-weight:700;font-family:monospace;outline:none;-webkit-appearance:none;">
+          <span style="color:#aaa;font-weight:600;text-align:center;">kg</span>
+          <button onclick="addWeight()" style="height:48px;padding:0 24px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;color:#fff;font-weight:700;font-family:inherit;cursor:pointer;">记录</button>
+        </div>
+      </div>
+
+      <!-- 体重趋势图 -->
+      <div class="section-label">体重趋势</div>
+      <div style="background:transparent;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;position:relative;">
+        <div id="weight-chart-trend" style="position:absolute;top:14px;right:14px;font-size:11px;color:var(--text3);text-align:right;z-index:1;"></div>
+        <div class="chart-toggle">
+          <button class="chart-toggle-btn active" id="chart-btn-7" onclick="setChartPeriod(7)">7日</button>
+          <button class="chart-toggle-btn" id="chart-btn-30" onclick="setChartPeriod(30)">30日</button>
+          <button class="chart-toggle-btn" id="chart-btn-all" onclick="setChartPeriod(0)">全部</button>
+        </div>
+        <canvas id="weight-chart" height="160" style="width:100%;display:block;"></canvas>
+        <div id="weight-chart-empty" style="text-align:center;padding:40px;color:#666;display:none;">记录2条以上数据后显示趋势图</div>
+      </div>
+
+      <!-- 体重记录列表 -->
+      <div style="margin-bottom:10px;margin-top:14px;"><div class="section-label" style="margin:0;">体重记录</div></div>
+      <div id="weight-list"></div>
+      <div id="weight-nav" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:10px;margin-bottom:16px;"></div>
+
+    </div>
+  </div>
+
+  <!-- STEADY SCREEN -->
+  <div id="screen-steady" class="screen">
+    <div class="header steady-b-header">
+      <div>
+        <div class="logo">饭后<span class="logo-accent">稳糖</span></div>
+        <div class="steady-page-subtitle">餐后30分钟提醒</div>
+      </div>
+    </div>
+    <div class="scroll-area steady-page">
+      <div class="steady-b-shell">
+        <div class="steady-b-reminder">
+          <div class="steady-b-countdown" onclick="showMealReminderModal()">
+            <div id="steady-timer">30:00</div>
+            <button class="steady-adjust-chip" type="button" onclick="showMealReminderModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+              点击调整
+            </button>
+            <div class="steady-glucose-curve" id="steady-glucose-curve">
+              <div class="steady-current-pill" id="steady-glucose-pill"><strong></strong><span>碳水开始分解<br>葡萄糖进入血液</span></div>
+              <svg viewBox="0 0 360 130" role="img" aria-label="餐后血糖趋势">
+                <defs>
+                  <linearGradient id="steady-rise-fill" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="rgba(45,212,191,0.08)"/>
+                    <stop offset="1" stop-color="rgba(34,197,94,0.14)"/>
+                  </linearGradient>
+                  <linearGradient id="steady-peak-fill" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="rgba(251,191,36,0.12)"/>
+                    <stop offset="1" stop-color="rgba(249,115,22,0.16)"/>
+                  </linearGradient>
+                  <linearGradient id="steady-drop-fill" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="rgba(74,158,255,0.10)"/>
+                    <stop offset="1" stop-color="rgba(74,158,255,0.035)"/>
+                  </linearGradient>
+                </defs>
+                <path class="steady-zone steady-zone-rise" d="M8 104 C30 100 55 76 94 54 L94 118 L8 118 Z"/>
+                <path class="steady-zone steady-zone-peak" d="M94 54 C120 38 150 24 180 45 L180 118 L94 118 Z"/>
+                <path class="steady-zone steady-zone-drop" d="M180 45 C210 66 286 88 352 106 L352 118 L180 118 Z"/>
+                <path class="steady-curve-bg" d="M8 104 C30 100 55 76 94 54 C120 38 150 24 180 45 C210 66 286 88 352 106"/>
+                <path class="steady-curve-rise" d="M8 104 C30 100 55 76 94 54"/>
+                <path class="steady-curve-peak" d="M94 54 C120 38 150 24 180 45"/>
+                <path class="steady-curve-drop" d="M180 45 C210 66 286 88 352 106"/>
+                <line class="steady-axis-line" x1="8" y1="118" x2="352" y2="118"/>
+                <line class="steady-remind-line" x1="94" y1="52" x2="94" y2="128"/>
+                <line class="steady-remind-line steady-drop-line" x1="180" y1="45" x2="180" y2="128"/>
+                <circle class="steady-current-dot" id="steady-glucose-dot" cx="8" cy="104" r="7.5"/>
+              </svg>
+              <div class="steady-zone-labels">
+                <div class="steady-zone-label rise"><b>上升区</b><span>0-30分钟</span></div>
+                <div class="steady-zone-label peak"><b>峰值区</b><span>30-60分钟</span></div>
+                <div class="steady-zone-label drop"><b>回落区</b><span>60-120分钟</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="steady-knowledge-card" onclick="nextSteadyKnowledge()" title="点击切换小知识">
+            <div class="steady-knowledge-icon">💡</div>
+            <div>
+              <strong>稳糖小知识</strong>
+              <p id="steady-knowledge-text">饭后血糖通常在30-60分钟进入高峰，<br>准时提醒能帮助你观察餐后状态。</p>
+            </div>
+            <div class="steady-knowledge-arrow">›</div>
+          </div>
+          <div class="steady-action-row">
+            <button class="steady-primary state-start" id="steady-primary" onclick="recordMeal()">开始餐后30分钟提醒</button>
+          </div>
+        </div>
+
+        <div class="steady-stats-grid">
+          <div class="steady-stat-card">
+            <div class="steady-stat-icon steady-stat-ok">✓</div>
+            <div>
+              <span>今日提醒</span>
+              <strong id="steady-today">0</strong><em>次</em>
+            </div>
+            <svg class="steady-spark" viewBox="0 0 80 34" preserveAspectRatio="none"><path d="M2 30 C14 26 18 18 28 22 C37 26 40 8 50 14 C60 20 64 6 78 3"/></svg>
+          </div>
+          <div class="steady-stat-card">
+            <div class="steady-stat-icon steady-stat-fire">🔥</div>
+            <div>
+              <span>连续天数</span>
+              <strong id="steady-streak">0</strong><em>天</em>
+            </div>
+            <svg class="steady-spark orange" viewBox="0 0 80 34" preserveAspectRatio="none"><path d="M2 30 C14 20 19 24 28 18 C38 10 43 20 52 12 C62 3 67 11 78 4"/></svg>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;margin-top:14px;"><div class="section-label" style="margin:0;">稳糖记录</div></div>
+        <div id="steady-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div id="screen-history" class="screen">
+    <div class="header">
+      <div class="logo">断食<span class="logo-accent">记录</span></div>
+    </div>
+    <div class="scroll-area">
+      <div class="section-label">断食时长图</div>
+      <div style="background:transparent;border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;">
+        <div style="position:relative;height:100px;">
+          <canvas id="fasting-bar-chart"></canvas>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);"><span style="width:10px;height:10px;border-radius:2px;background:#b4b2a9;display:inline-block;"></span>没达标</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);"><span style="width:10px;height:10px;border-radius:2px;background:#639922;display:inline-block;"></span>达标</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);"><span style="width:10px;height:10px;border-radius:2px;background:#ef9f27;display:inline-block;"></span>大幅超过</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);"><span style="width:20px;height:0;border-top:1.5px dashed rgba(180,178,169,0.6);display:inline-block;"></span>目标</span>
+        </div>
+      </div>
+      <div class="section-label">统计概览</div>
+      <div class="history-stats">
+        <div class="hstat">
+          <div class="hstat-val" id="h-total">0</div>
+          <div class="hstat-lbl">总次数</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="h-completed" style="color:var(--green);">0</div>
+          <div class="hstat-lbl">完成率</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="h-streak">0</div>
+          <div class="hstat-lbl">连续天</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;margin-top:14px;"><div class="section-label" style="margin:0;">历史记录</div></div>
+      <div id="history-list"></div>
+      <div id="history-nav" style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:10px;margin-bottom:16px;"></div>
+
+      <!-- 数据备份 -->
+      <div style="background:transparent;border:1px solid var(--border);border-radius:16px;padding:10px;margin-top:16px;margin-bottom:24px;display:flex;flex-direction:column;gap:8px;">
+        <!-- 导出 / 导入 横排紧凑 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="exportData()" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:12px;background:transparent;border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:inherit;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span style="font-size:13px;color:var(--text);">导出备份</span>
+          </button>
+          <label style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:12px;background:transparent;border:1px solid var(--border);border-radius:12px;cursor:pointer;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span style="font-size:13px;color:var(--text);">导入备份</span>
+            <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+          </label>
+        </div>
+        <!-- 清除全部数据 无外框 -->
+        <div style="position:relative;height:38px;">
+          <div id="clear-progress" style="position:absolute;left:0;top:0;height:100%;width:0%;background:rgba(255,96,96,0.15);border-radius:8px;transition:width 0.05s linear;"></div>
+          <button id="clear-btn"
+            style="position:absolute;inset:0;width:100%;background:none;border:1px solid rgba(255,96,96,0.35);border-radius:8px;font-size:13px;color:#ff6060;cursor:pointer;font-family:inherit;z-index:1;"
+            onmousedown="startClearLP()" ontouchstart="startClearLP(event)" onmouseup="cancelClearLP()" onmouseleave="cancelClearLP()" ontouchend="cancelClearLP()">
+            清除全部数据
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /screen-wrap -->
+
+  <!-- 调整时长弹窗（在 screen-wrap 外，避免被截断） -->
+  <div id="adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 20px 16px;width:80%;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px;text-align:center;color:var(--text);">已断食多久？</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <input id="adjust-hours" type="number" min="0" max="72" placeholder="0"
+          style="width:72px;background:transparent;border:1px solid var(--border);border-radius:10px;padding:10px 0;color:var(--text);font-size:26px;font-weight:700;font-family:monospace;outline:none;text-align:center;-webkit-appearance:none;">
+        <span style="font-size:13px;color:var(--text2);">时</span>
+        <input id="adjust-mins" type="number" min="0" max="59" placeholder="0"
+          style="width:72px;background:transparent;border:1px solid var(--border);border-radius:10px;padding:10px 0;color:var(--text);font-size:26px;font-weight:700;font-family:monospace;outline:none;text-align:center;-webkit-appearance:none;">
+        <span style="font-size:13px;color:var(--text2);">分</span>
+      </div>
+      <div id="adjust-preview" style="text-align:center;margin:12px 0 0;font-size:12px;color:var(--blue);min-height:18px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button onclick="hideAdjustModal()" style="flex:1;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:inherit;font-size:13px;cursor:pointer;">取消</button>
+        <button onclick="applyAdjust()" style="flex:1;padding:11px;border-radius:10px;background:var(--blue);border:none;color:#fff;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="nav-label">主页</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item" id="nav-fasting" onclick="showScreen('fasting')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <div class="nav-label">计时</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item" id="nav-weight" onclick="showScreen('weight')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6z"/></svg>
+      </div>
+      <div class="nav-label">体重</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item" id="nav-steady" onclick="showScreen('steady')">
+      <div class="nav-icon">
+        <svg class="steady-nav-svg" width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">
+          <path class="steady-nav-wave" d="M4 31h4c4.7 0 4.7-5.8 9.4-5.8 6.9 0 4.2 13.4 11 13.4 8.5 0 5.1-31.3 14-31.3 8.4 0 4.6 39.5 13.1 39.5 6.8 0 5.1-16.4 13-16.4 5.1 0 5.1 6.4 10.5 6.4h4" transform="scale(.72) translate(2 0)" fill="none" stroke="currentColor" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="nav-label">稳糖</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item" id="nav-history" onclick="showScreen('history')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </div>
+      <div class="nav-label">记录</div>
+      <div class="nav-dot"></div>
+    </div>
+  </div>
+
+  <!-- Install Prompt -->
+  <div class="install-banner" id="install-banner" style="display:none;">
+    <div>
+      <div class="install-text">📱 安装到手机桌面</div>
+      <div class="install-sub">离线使用，像原生App一样</div>
+    </div>
+    <button class="install-btn-yes" onclick="installApp()">安装</button>
+    <button class="install-btn-no" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <!-- Milestone flash & toast -->
+  <div id="milestone-flash"></div>
+  <div id="milestone-toast">
+    <div class="mt-icon" id="mt-icon">✨</div>
+    <div>
+      <div class="mt-title" id="mt-title">进入新阶段</div>
+      <div class="mt-desc" id="mt-desc"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 目标体重弹窗 -->
+<div id="goal-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:80%;max-width:320px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;text-align:center;color:var(--text);">🎯 设置目标体重</div>
+    <input id="goal-input" type="number" placeholder="60.0" step="0.1" min="20" max="300"
+      style="width:100%;background:transparent;border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:18px;font-weight:700;font-family:monospace;outline:none;text-align:center;box-sizing:border-box;-webkit-appearance:none;">
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin:8px 0 16px;">单位：kg</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="hideGoalModal()" style="flex:1;padding:12px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:inherit;cursor:pointer;">取消</button>
+      <button onclick="saveGoal()" style="flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#4a9eff,#a855f7);border:none;color:#fff;font-weight:700;font-family:inherit;cursor:pointer;">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 身高弹窗 -->
+<div id="height-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:80%;max-width:320px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;text-align:center;color:var(--text);">📏 设置身高</div>
+    <input id="height-input" type="number" placeholder="170" min="100" max="250"
+      style="width:100%;background:transparent;border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:18px;font-weight:700;font-family:monospace;outline:none;text-align:center;box-sizing:border-box;-webkit-appearance:none;">
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin:8px 0 16px;">单位：cm</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="hideHeightModal()" style="flex:1;padding:12px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:inherit;cursor:pointer;">取消</button>
+      <button onclick="saveHeight()" style="flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#4a9eff,#a855f7);border:none;color:#fff;font-weight:700;font-family:inherit;cursor:pointer;">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 餐后提醒时间弹窗 -->
+<div id="meal-reminder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:80%;max-width:320px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;text-align:center;color:var(--text);">饭后已经过了多久？</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <input id="meal-reminder-min-input" type="number" placeholder="0" min="0" max="180" onfocus="this.select()" onclick="this.select()"
+          style="width:100%;background:transparent;border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:18px;font-weight:700;font-family:monospace;outline:none;text-align:center;box-sizing:border-box;-webkit-appearance:none;">
+        <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:6px;">分钟</div>
+      </div>
+      <div>
+        <input id="meal-reminder-sec-input" type="number" placeholder="0" min="0" max="59" onfocus="this.select()" onclick="this.select()"
+          style="width:100%;background:transparent;border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text);font-size:18px;font-weight:700;font-family:monospace;outline:none;text-align:center;box-sizing:border-box;-webkit-appearance:none;">
+        <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:6px;">秒</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin:8px 0 16px;">以30分钟为提醒基准，可精确到秒</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="hideMealReminderModal()" style="flex:1;padding:12px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:inherit;cursor:pointer;">取消</button>
+      <button onclick="saveMealReminder()" style="flex:1;padding:12px;border-radius:12px;background:linear-gradient(135deg,#4a9eff,#a855f7);border:none;color:#fff;font-weight:700;font-family:inherit;cursor:pointer;">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 餐后提醒到点弹窗 -->
+<div id="steady-alert-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9200;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;width:80%;max-width:320px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,0.35);">
+    <div style="width:36px;height:36px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:var(--blue);">
+      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 6v6l4 2"/>
+        <circle cx="12" cy="12" r="8"/>
+        <path d="M5 4 3.5 5.5"/>
+        <path d="M19 4 20.5 5.5"/>
+      </svg>
+    </div>
+    <div style="font-size:17px;font-weight:900;margin-bottom:8px;color:var(--text);">餐后30分钟到了</div>
+    <div style="font-size:12px;line-height:1.65;color:var(--text2);margin-bottom:18px;">现在可以去活动了，确认后会记录，餐后观察会在后台继续。</div>
+    <button onclick="ackMealReminder()" style="width:100%;padding:13px;border-radius:13px;background:linear-gradient(135deg,#4a9eff,#a855f7);border:none;color:#fff;font-weight:800;font-family:inherit;font-size:14px;cursor:pointer;">知道了，去活动</button>
+  </div>
+</div>
+
+<script defer src="./script.js"></script>
+</body>
+</html>
